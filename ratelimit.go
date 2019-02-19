@@ -50,10 +50,10 @@ func blockFromCloudFlare(ip string) {
 	blockSync.RUnlock()
 
 	log.Printf("Blocking IP %s at CloudFlare level ...\n", ip)
-	return
 
 	blockSync.Lock()
-	defer blockSync.Unlock()
+	blocked = append(blocked, ip)
+	blockSync.Unlock()
 
 	j, err := json.Marshal(CloudFlareData{
 		Mode: "block",
@@ -81,8 +81,6 @@ func blockFromCloudFlare(ip string) {
 		return
 	}
 	resp.Body.Close()
-
-	blocked = append(blocked, ip)
 
 	log.Printf("Blocked IP %s at CloudFlare level\n", ip)
 }
