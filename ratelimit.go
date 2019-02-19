@@ -1,13 +1,20 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"log"
+	"net/http"
+	"os"
 	"time"
 
 	"github.com/OneOfOne/cmap/stringcmap"
 )
 
-const rateLimitThreshold = 3
+const (
+	rateLimitThreshold = 3
+	banThreshold       = 200
+)
 
 var rateLimit *stringcmap.CMap
 
@@ -15,6 +22,51 @@ func init() {
 	rateLimit = stringcmap.New()
 
 	go processRateLimit()
+}
+
+type CloudFlareConfiguration struct {
+	Target string `json:"target"`
+	Value  string `json:"value"`
+}
+
+type CloudFlareData struct {
+	Mode          string                  `json:"mode"`
+	Configuration CloudFlareConfiguration `json:"configuration"`
+	Notes         string                  `json:"notes"`
+}
+
+func blockFromCloudFlare(ip string) {
+	log.Printf("Blocking IP %s at CloudFlare level ...\n", ip)
+	return
+
+	j, err := json.Marshal(CloudFlareData{
+		Mode: "block",
+		Configuration: CloudFlareConfiguration{
+			Target: "ip",
+			Value:  ip,
+		},
+		Notes: "blocked by count threshold",
+	})
+
+	req, err := http.NewRequest("POST", "https://api.cloudflare.com/client/v4/user/firewall/access_rules/rules", bytes.NewReader(j))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Auth-Email", os.Getenv("CLOUDFLARE_EMAIL"))
+	req.Header.Set("X-Auth-Key", os.Getenv("CLOUDFLARE_AUTH"))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	resp.Body.Close()
+
+	log.Printf("Blocked IP %s at CloudFlare level\n", ip)
 }
 
 func processRateLimit() {
@@ -49,7 +101,9 @@ func shouldRateLimit(ip string) (bool, int) {
 	if i, ok := item.(int); ok {
 		if i > rateLimitThreshold {
 			incrRateLimit(ip)
-			log.Printf("Current count for %s: %d\n", ip, item)
+			if i > 200 {
+				blockFromCloudFlare(ip)
+			}
 			return true, i
 		}
 	}
