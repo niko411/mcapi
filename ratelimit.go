@@ -1,12 +1,13 @@
 package main
 
 import (
+	"log"
 	"time"
 
 	"github.com/OneOfOne/cmap/stringcmap"
 )
 
-const rateLimitThreshold = 5
+const rateLimitThreshold = 3
 
 var rateLimit *stringcmap.CMap
 
@@ -48,6 +49,7 @@ func shouldRateLimit(ip string) (bool, int) {
 	if i, ok := item.(int); ok {
 		if i > rateLimitThreshold {
 			incrRateLimit(ip)
+			log.Printf("Current count for %s: %d\n", ip, item)
 			return true, i
 		}
 	}

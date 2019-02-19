@@ -118,8 +118,6 @@ func getQueryFromCacheOrUpdate(serverAddr string, c *gin.Context) *types.ServerQ
 	log.Printf("New server %s from %s\n", serverAddr, ip)
 
 	if limit, count := shouldRateLimit(ip); limit {
-		time.Sleep(time.Second * time.Duration(count))
-
 		c.AbortWithStatusJSON(http.StatusTooManyRequests, struct {
 			Error    string `json:"error"`
 			TryAfter int    `json:"try_after"`
