@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/OneOfOne/cmap/stringcmap"
@@ -35,9 +36,24 @@ type CloudFlareData struct {
 	Notes         string                  `json:"notes"`
 }
 
+var blocked []string
+var blockSync sync.RWMutex
+
 func blockFromCloudFlare(ip string) {
+	blockSync.RLock()
+	for _, against := range blocked {
+		if ip == against {
+			blockSync.RUnlock()
+			return
+		}
+	}
+	blockSync.RUnlock()
+
 	log.Printf("Blocking IP %s at CloudFlare level ...\n", ip)
 	return
+
+	blockSync.Lock()
+	defer blockSync.Unlock()
 
 	j, err := json.Marshal(CloudFlareData{
 		Mode: "block",
@@ -65,6 +81,8 @@ func blockFromCloudFlare(ip string) {
 		return
 	}
 	resp.Body.Close()
+
+	blocked = append(blocked, ip)
 
 	log.Printf("Blocked IP %s at CloudFlare level\n", ip)
 }
