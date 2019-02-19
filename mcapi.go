@@ -13,16 +13,17 @@ import (
 	"time"
 
 	"github.com/OneOfOne/cmap/stringcmap"
-	"github.com/gomodule/redigo/redis"
 	"github.com/getsentry/raven-go"
 	"github.com/gin-contrib/sentry"
 	"github.com/gin-gonic/gin"
 	"github.com/gocraft/work"
+	"github.com/gomodule/redigo/redis"
 	"github.com/syfaro/mcapi/types"
 )
 
+// Config is configuration data to run.
 type Config struct {
-	HttpAppHost  string
+	HTTPAppHost  string
 	RedisHost    string
 	StaticFiles  string
 	TemplateFile string
@@ -53,7 +54,7 @@ func loadConfig(path string) *Config {
 
 func generateConfig(path string) {
 	cfg := &Config{
-		HttpAppHost:  ":8080",
+		HTTPAppHost:  ":8080",
 		RedisHost:    ":6379",
 		StaticFiles:  "./scripts",
 		TemplateFile: "./templates/index.html",
@@ -93,6 +94,7 @@ func updateServers() {
 	})
 }
 
+// JobCtx is context for a running job.
 type JobCtx struct{}
 
 func jobMiddleware(job *work.Job, next work.NextMiddlewareFunc) error {
@@ -218,7 +220,7 @@ func main() {
 		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 
-	router.GET("/health", func (c *gin.Context) {
+	router.GET("/health", func(c *gin.Context) {
 		c.String(http.StatusOK, ":3")
 	})
 
@@ -303,5 +305,5 @@ func main() {
 		c.String(http.StatusOK, "Cleared items.")
 	})
 
-	router.Run(cfg.HttpAppHost)
+	router.Run(cfg.HTTPAppHost)
 }

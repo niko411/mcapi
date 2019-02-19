@@ -167,6 +167,8 @@ func getStatusFromCacheOrUpdate(serverAddr string, c *gin.Context, hideError boo
 	log.Printf("New server %s from %s\n", serverAddr, ip)
 
 	if limit, count := shouldRateLimit(ip); limit {
+		time.Sleep(time.Second * time.Duration(count))
+
 		if !hideError {
 			c.AbortWithStatusJSON(http.StatusTooManyRequests, struct {
 				Error    string `json:"error"`

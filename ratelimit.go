@@ -61,6 +61,6 @@ func incrRateLimit(ip string) {
 	if item == nil {
 		rateLimit.Set(ip, 1)
 	} else if i, ok := item.(int); ok {
-		rateLimit.Set(ip, i + 1)
+		rateLimit.Set(ip, i+1)
 	}
 }
