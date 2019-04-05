@@ -1,0 +1,57 @@
+kind: pipeline
+name: default
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+- name: build
+  image: golang
+  commands:
+  - go build
+
+- name: save-artifact
+  image: plugins/s3
+  settings:
+    access_key:
+      from_secret: minio_access_key
+    bucket:
+      from_secret: minio_bucket
+    endpoint:
+      from_secret: minio_endpoint
+    path_style: true
+    secret_key:
+      from_secret: minio_secret_key
+    source: ./mcapi
+    target: "/mcapi/${DRONE_COMMIT_SHA}/mcapi"
+
+---
+kind: secret
+name: minio_access_key
+get:
+  path: drone/minio
+  name: access_key
+
+---
+kind: secret
+name: minio_secret_key
+get:
+  path: drone/minio
+  name: secret_key
+
+---
+kind: secret
+name: minio_bucket
+get:
+  path: drone/minio
+  name: bucket
+
+---
+kind: secret
+name: minio_endpoint
+get:
+  path: drone/minio
+  name: endpoint
+
+...
