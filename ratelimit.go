@@ -12,6 +12,11 @@ import (
 	"github.com/OneOfOne/cmap/stringcmap"
 )
 
+var (
+	rateLimitEnabled  = true
+	cloudflareEnabled = true
+)
+
 const (
 	rateLimitThreshold = 3
 	banThreshold       = 200
@@ -20,19 +25,20 @@ const (
 var rateLimit *stringcmap.CMap
 
 func init() {
-	rateLimit = stringcmap.New()
-
-	go processRateLimit()
+	if rateLimitEnabled {
+		rateLimit = stringcmap.New()
+		go processRateLimit()
+	}
 }
 
-type CloudFlareConfiguration struct {
+type cloudFlareConfiguration struct {
 	Target string `json:"target"`
 	Value  string `json:"value"`
 }
 
-type CloudFlareData struct {
+type cloudFlareData struct {
 	Mode          string                  `json:"mode"`
-	Configuration CloudFlareConfiguration `json:"configuration"`
+	Configuration cloudFlareConfiguration `json:"configuration"`
 	Notes         string                  `json:"notes"`
 }
 
@@ -40,6 +46,10 @@ var blocked []string
 var blockSync sync.RWMutex
 
 func blockFromCloudFlare(ip string) {
+	if !cloudflareEnabled {
+		return
+	}
+
 	blockSync.RLock()
 	for _, against := range blocked {
 		if ip == against {
@@ -55,9 +65,9 @@ func blockFromCloudFlare(ip string) {
 	blocked = append(blocked, ip)
 	blockSync.Unlock()
 
-	j, err := json.Marshal(CloudFlareData{
+	j, err := json.Marshal(cloudFlareData{
 		Mode: "block",
-		Configuration: CloudFlareConfiguration{
+		Configuration: cloudFlareConfiguration{
 			Target: "ip",
 			Value:  ip,
 		},
@@ -108,6 +118,10 @@ func processRateLimit() {
 }
 
 func shouldRateLimit(ip string) (bool, int) {
+	if !rateLimitEnabled {
+		return false, 0
+	}
+
 	item := rateLimit.Get(ip)
 
 	if item == nil {
@@ -128,6 +142,10 @@ func shouldRateLimit(ip string) (bool, int) {
 }
 
 func incrRateLimit(ip string) {
+	if !rateLimitEnabled {
+		return
+	}
+
 	item := rateLimit.Get(ip)
 
 	if item == nil {
