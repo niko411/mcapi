@@ -24,7 +24,7 @@ steps:
     secret_key:
       from_secret: minio_secret_key
     source: ./mcapi
-    target: "/mcapi/${DRONE_COMMIT_SHA}/mcapi"
+    target: "/mcapi/${DRONE_COMMIT_SHA}"
 
 ---
 kind: secret
