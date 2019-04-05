@@ -27,3 +27,6 @@ Rate limiting with Cloudflare requires setting the following environment variabl
 Disable ratelimiting generally or with Cloudflare by using built-time variables
 to update `rateLimitEnabled` and `cloudflareEnabled` or modifying the code
 in `ratelimit.go#16-17`.
+
+Setting `APPROVED_IPS` to a comma separated list of IP addresses will prevent
+the rate limits from applying to those addresses.

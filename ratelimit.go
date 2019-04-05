@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,9 +25,27 @@ const (
 
 var rateLimit *stringcmap.CMap
 
+type approvedIPs []string
+
+func (ips approvedIPs) contains(ip string) bool {
+	for _, val := range ips {
+		if val == ip {
+			return true
+		}
+	}
+
+	return false
+}
+
+var approvedIPList approvedIPs
+
 func init() {
 	if rateLimitEnabled {
 		rateLimit = stringcmap.New()
+		approvedIPList = strings.Split(os.Getenv("APPROVED_IPS"), ",")
+
+		log.Printf("Approved IPs: %+v\n", approvedIPList)
+
 		go processRateLimit()
 	}
 }
@@ -46,7 +65,7 @@ var blocked []string
 var blockSync sync.RWMutex
 
 func blockFromCloudFlare(ip string) {
-	if !cloudflareEnabled {
+	if !cloudflareEnabled || approvedIPList.contains(ip) {
 		return
 	}
 
@@ -118,7 +137,7 @@ func processRateLimit() {
 }
 
 func shouldRateLimit(ip string) (bool, int) {
-	if !rateLimitEnabled {
+	if !rateLimitEnabled || approvedIPList.contains(ip) {
 		return false, 0
 	}
 
@@ -142,7 +161,7 @@ func shouldRateLimit(ip string) (bool, int) {
 }
 
 func incrRateLimit(ip string) {
-	if !rateLimitEnabled {
+	if !rateLimitEnabled || approvedIPList.contains(ip) {
 		return
 	}
 
