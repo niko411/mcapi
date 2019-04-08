@@ -26,6 +26,20 @@ steps:
     source: ./mcapi
     target: "/mcapi/${DRONE_COMMIT_SHA}"
 
+- name: build-image
+  image: plugins/docker
+  settings:
+    auto_tag: true
+    password:
+      from_secret: docker_password
+    registry: registry.huefox.com
+    repo: registry.huefox.com/mcapi
+    username:
+      from_secret: username
+  when:
+    branch:
+      - master
+
 ---
 kind: secret
 name: minio_access_key
@@ -53,5 +67,19 @@ name: minio_endpoint
 get:
   path: drone/minio
   name: endpoint
+
+---
+kind: secret
+name: docker_username
+get:
+  path: drone/docker
+  name: username
+
+---
+kind: secret
+name: docker_password
+get:
+  path: drone/docker
+  name: password
 
 ...

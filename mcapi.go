@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -146,10 +145,7 @@ func main() {
 
 	flag.Parse()
 
-	f, _ := os.OpenFile("mcapi.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-	defer f.Close()
-
-	log.SetOutput(io.MultiWriter(f, os.Stdout))
+	log.SetOutput(os.Stdout)
 
 	if *genConfig {
 		generateConfig(*configFile)
