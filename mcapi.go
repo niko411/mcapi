@@ -1,10 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
-	"io/ioutil"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -12,22 +11,23 @@ import (
 	"time"
 
 	"github.com/OneOfOne/cmap/stringcmap"
+	"github.com/Syfaro/mcapi/types"
 	"github.com/getsentry/raven-go"
 	"github.com/gin-contrib/sentry"
 	"github.com/gin-gonic/gin"
 	"github.com/gocraft/work"
 	"github.com/gomodule/redigo/redis"
-	"github.com/syfaro/mcapi/types"
+	"github.com/kelseyhightower/envconfig"
 )
+
+//go:generate go-bindata -o bindata.go templates/ files/ scripts/
 
 // Config is configuration data to run.
 type Config struct {
-	HTTPAppHost  string
-	RedisHost    string
-	StaticFiles  string
-	TemplateFile string
-	SentryDSN    string
-	AdminKey     string
+	HTTPAppHost string
+	RedisHost   string
+	SentryDSN   string
+	AdminKey    string
 }
 
 var redisPool *redis.Pool
@@ -36,40 +36,6 @@ var enqueuer *work.Enqueuer
 
 var pingMap *stringcmap.CMap
 var queryMap *stringcmap.CMap
-
-func loadConfig(path string) *Config {
-	file, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-		panic(err)
-	}
-
-	var cfg Config
-	json.Unmarshal(file, &cfg)
-
-	return &cfg
-}
-
-func generateConfig(path string) {
-	cfg := &Config{
-		HTTPAppHost:  ":8080",
-		RedisHost:    ":6379",
-		StaticFiles:  "./scripts",
-		TemplateFile: "./templates/index.html",
-		AdminKey:     "your_secret",
-	}
-
-	data, err := json.MarshalIndent(cfg, "", "	")
-	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-	}
-
-	err = ioutil.WriteFile(path, data, 0644)
-	if err != nil {
-		raven.CaptureErrorAndWait(err, nil)
-	}
-}
 
 var fatalServerErrors = []string{
 	"no such host",
@@ -139,21 +105,17 @@ func jobUpdate(job *work.Job) error {
 }
 
 func main() {
-	configFile := flag.String("config", "config.json", "path to configuration file")
-	genConfig := flag.Bool("gencfg", false, "generate configuration file with sane defaults")
 	fetch := flag.Bool("fetch", true, "enable fetching server data")
 
 	flag.Parse()
 
 	log.SetOutput(os.Stdout)
 
-	if *genConfig {
-		generateConfig(*configFile)
-		log.Println("Saved configuration file with sane defaults, please update as needed")
-		os.Exit(0)
+	var cfg Config
+	err := envconfig.Process("mcapi", &cfg)
+	if err != nil {
+		panic(err)
 	}
-
-	cfg := loadConfig(*configFile)
 
 	raven.SetDSN(cfg.SentryDSN)
 
@@ -197,8 +159,21 @@ func main() {
 	router := gin.New()
 	router.Use(sentry.Recovery(raven.DefaultClient, false))
 
-	router.Static("/scripts", cfg.StaticFiles)
-	router.LoadHTMLFiles(cfg.TemplateFile)
+	template, err := template.New("index.html").Parse(string(MustAsset("templates/index.html")))
+	if err != nil {
+		panic(err)
+	}
+	router.SetHTMLTemplate(template)
+
+	router.GET("/scripts/*filepath", func(c *gin.Context) {
+		p := c.Param("filepath")
+		data, err := Asset("scripts" + p)
+		if err != nil {
+			c.AbortWithStatus(404)
+			return
+		}
+		c.Writer.Write(data)
+	})
 
 	router.Use(func(c *gin.Context) {
 		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")

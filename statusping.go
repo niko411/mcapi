@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/syfaro/mcapi/types"
-	"github.com/syfaro/minepong"
+	"github.com/Syfaro/mcapi/types"
+	"github.com/Syfaro/minepong"
 )
 
 func updatePing(serverAddr string) *types.ServerStatus {

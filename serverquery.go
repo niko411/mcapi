@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/syfaro/mc/mcquery"
-	"github.com/syfaro/mcapi/types"
+	"github.com/Syfaro/mc/mcquery"
+	"github.com/Syfaro/mcapi/types"
 )
 
 func updateQuery(serverAddr string) *types.ServerQuery {

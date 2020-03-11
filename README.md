@@ -8,21 +8,24 @@ It is running at [mcapi.us](https://mcapi.us).
 ## Configuration
 
 ```bash
+go get -u github.com/go-bindata/go-bindata/...
+go generate
 go build
-./mcapi -gencfg
+
+export MCAPI_HTTPAPPHOST=127.0.0.1:8080 MCAPI_REDISHOST=127.0.0.1:6379
+./mcapi
 ```
 
-Options in config.json:
-* HTTPAppHost &mdash; host and port to listen on
-* RedisHost &mdash; host of redis server
-* StaticFiles &mdash; path to static files
-* TemplateFile &mdash; path to index file
-* SentryDSN &mdash; optional sentry dsn to report errors to
-* AdminKey &mdash; secret token used to get list of servers or clear the list
+| Env Variable        | Description                                    |
+| ------------------- | ---------------------------------------------- |
+| `MCAPI_HTTPAPPHOST` | Host and port for the HTTP server to listen on |
+| `MCAPI_REDISHOST`   | Host and port of Redis server                  |
+| `MCAPI_SENTRYDSN`   | Optional Sentry DSN for error reporting        |
+| `MCAPI_ADMINKEY`    | Secret token for authenticated operations      |
 
 Rate limiting with Cloudflare requires setting the following environment variables:
-* CLOUDFLARE_EMAIL &mdash; your Cloudflare account email address
-* CLOUDFLARE_AUTH &mdash; your Cloudflare authentication token
+* `CLOUDFLARE_EMAIL` &mdash; your Cloudflare account email address
+* `CLOUDFLARE_AUTH` &mdash; your Cloudflare authentication token
 
 Disable ratelimiting generally or with Cloudflare by using built-time variables
 to update `rateLimitEnabled` and `cloudflareEnabled` or modifying the code
