@@ -18,6 +18,9 @@ import (
 	"github.com/gocraft/work"
 	"github.com/gomodule/redigo/redis"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 //go:generate go-bindata -o bindata.go templates/ files/ scripts/
@@ -44,6 +47,33 @@ var fatalServerErrors = []string{
 	"too many colons in address",
 	"invalid argument",
 }
+
+var (
+	totalRequests = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "mcapi_http_requests_total",
+		Help: "The total number of HTTP requests",
+	})
+
+	serverStatusCacheMiss = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "mcapi_status_cache_miss_total",
+		Help: "The total number of cache misses for server status",
+	})
+
+	serverStatusCacheHit = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "mcapi_status_cache_hit_total",
+		Help: "The total number of cache hits for server status",
+	})
+
+	serverQueryCacheMiss = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "mcapi_query_cache_miss_total",
+		Help: "The total number of cache misses for server query",
+	})
+
+	serverQueryCacheHit = promauto.NewCounter(prometheus.CounterOpts{
+		Name: "mcapi_query_cache_hit_total",
+		Help: "The total number of cache hits for server query",
+	})
+)
 
 func updateServers() {
 	pingMap.ForEachLocked(func(key string, _ interface{}) bool {
@@ -165,6 +195,8 @@ func main() {
 	}
 	router.SetHTMLTemplate(template)
 
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
 	router.GET("/scripts/*filepath", func(c *gin.Context) {
 		p := c.Param("filepath")
 		data, err := Asset("scripts" + p)
@@ -185,6 +217,8 @@ func main() {
 		r := redisPool.Get()
 		r.Do("INCR", "mcapi")
 		r.Close()
+
+		totalRequests.Inc()
 	})
 
 	router.GET("/", func(c *gin.Context) {

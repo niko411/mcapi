@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/Syfaro/mc/mcquery"
 	"github.com/Syfaro/mcapi/types"
+	"github.com/gin-gonic/gin"
 )
 
 func updateQuery(serverAddr string) *types.ServerQuery {
@@ -110,8 +110,11 @@ func getQueryFromCacheOrUpdate(serverAddr string, c *gin.Context) *types.ServerQ
 	serverAddr = strings.ToLower(serverAddr)
 
 	if status, ok := queryMap.GetOK(serverAddr); ok {
+		serverQueryCacheHit.Inc()
 		return status.(*types.ServerQuery)
 	}
+
+	serverQueryCacheMiss.Inc()
 
 	ip := c.GetHeader("CF-Connecting-IP")
 
